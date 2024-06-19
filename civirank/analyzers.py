@@ -39,7 +39,7 @@ class LexicalDensityAnalyzer():
 
 class TrustworthinessAnalyzer():
     '''
-        Class that loads a trustworthiness analyzer using the domain scores from https://doi.org/10.1093/pnasnexus/pgad286, avaiable at https://github.com/hauselin/domain-quality-ratings. It exposes a function to calculate the trustworthiness of links contained in a post. It returns a single floating point value between 0 and 1 as trustworthiness score. A higher value means a more trustworthy link. If multiple links are contained in a post and indexed in the NewsGuard data base, the average trustworthiness rating is returned.
+        Class that loads a trustworthiness analyzer using the domain scores from https://doi.org/10.1093/pnasnexus/pgad286, avaiable at https://github.com/hauselin/domain-quality-ratings. It exposes a function to calculate the trustworthiness of links contained in a post. It returns a single floating point value between 0 and 1 as trustworthiness score. A higher value means a more trustworthy link. If multiple links are contained in a post and indexed in the NewsGuard data base, the average trustworthiness rating is returned. We remove the following domains from the csv file: youtube.com,facebook.com,google.com
     '''
     def __init__(self):
         current_dir = os.path.dirname(__file__)
@@ -81,6 +81,9 @@ class TrustworthinessAnalyzer():
             return scores
 
 class ToxicityAnalyzer():
+    '''
+        Class that loads a model to compute the toxicity of a text. It uses the unbiased toxic-roberta ONNX model from https://huggingface.co/protectai/unbiased-toxic-roberta-onnx. 
+    '''
     def __init__(self, model_name="protectai/unbiased-toxic-roberta-onnx", file_name='model.onnx', gpu_id=0):
         # Initialize the ONNX model and tokenizer with the specified model name
         self.model = ORTModelForSequenceClassification.from_pretrained(model_name, file_name=file_name, provider="CUDAExecutionProvider", provider_options={'device_id': gpu_id})
@@ -126,78 +129,17 @@ class ToxicityAnalyzer():
 
             return results
 
-class PolarizationAnalyzer():
-    def __init__(self, model = 'joaopn/glove-model-reduced-stopwords', local_model = False, label_filter = 'issue'):
-        # Initialize the model
-        if local_model:
-            current_dir = os.path.dirname(__file__)
-            model_path = os.path.join(current_dir, 'data', model)
-        else:
-            model_path = model
-        self.model = SentenceTransformer(model_path, device="cuda")
-        self.batch_size = 1024
-        # Load the polarization terms and compute their embeddings
-        self.label_filter = label_filter
-        self.load_and_embed_terms()
-        
-    def load_and_embed_terms(self):
-        # Load terms from CSV
-        current_dir = os.path.dirname(__file__)
-        fname = "polarization_dictionary.csv"
-        filepath = os.path.join(current_dir, 'data', fname)
-        df = pd.read_csv(filepath, header=0)
-        if self.label_filter is not None:
-            df = df[df['label'] == self.label_filter]
-        unique_words = df['word'].unique()
-        
-        # Compute embeddings for the unique words
-        self.dict_embeddings = self.model.encode(
-            list(unique_words),
-            batch_size=self.batch_size,
-            show_progress_bar=False,
-            convert_to_tensor=True
-        )
-        
-        # Average the embeddings to create a single dictionary embedding
-        self.dict_embeddings = torch.mean(self.dict_embeddings, dim=0)
-
-    def preprocess(self, df):
-        # Regular expressions to clean up the text data
-        df["text"] = df["text"].replace(
-            to_replace=[r"(?:https?:\/\/(?:www\.|(?!www))[^\s\.]+\.[^\s]{2,}|www\.[^\s]+\.[^\s]{2,})"],
-            value=[""], 
-            regex=True,
-        )
-        df["text"] = df["text"].replace(to_replace=r"&.*;", value="", regex=True)
-        df["text"] = df["text"].replace(to_replace=[r"\\t|\\n|\\r", "\t|\n|\r"], value=["",""], regex=True) 
-        df["text"] = df["text"].replace(to_replace=r"\s+", value=" ", regex=True)
-        df["text"] = df["text"].replace(to_replace=r"\@\w+", value="@user", regex=True)
-
-    def get_embeddings(self, df):
-        # Encode text in batches
-        corpus_embeddings = self.model.encode(
-            list(df["text"]),
-            batch_size=self.batch_size,
-            show_progress_bar=False, 
-            convert_to_tensor=True
-        ) 
-
-        assert len(corpus_embeddings) == len(df)
-        return corpus_embeddings
-    
-    def compute_similarity(self, text_embeddings):
-        # Calculate cosine similarity between text embeddings and dictionary embeddings
-        cos_sim = util.cos_sim(text_embeddings, self.dict_embeddings)
-        return cos_sim
-    
-    def get_similarity(self, texts):
-        df = texts.copy()
-        self.preprocess(df)
-        text_embeddings = self.get_embeddings(df)
-        cos_sim = self.compute_similarity(text_embeddings)
-        return cos_sim.cpu().numpy()
-
 class ProsocialityPolarizationAnalyzer():
+    '''
+        Class that loads a model to compute the similarity of a text to a prosociality and a polarization dictionary. The similarity is computed as the cosine similarity between the text embeddings and the dictionary embeddings. 
+        
+        # Polarization
+        Class that loads pre-calculated embeddings of the affective polarization dictionary from  https://academic.oup.com/pnasnexus/article/1/1/pgac019/6546199?login=false#381342977 and calculates similar embeddings using GloVe for a given text. It exposes a function get_similarity_polarization() that calculates the cosine similarity between the averaged dictionary embeddings and the text embedding following the DDR approach (see https://doi.org/10.3758/s13428-017-0875-9). The function returns a single floating point value between -1 and+1, with values closer to -1 meaning a text is less similar to polarizing language whereas values closer to +1 are more similar to polarizing language.
+
+        # Prosociality
+        Similar to the polarization class, it loads a dictionary of prosocial terms and calculates the cosine similarity between the averaged dictionary embeddings and the text embeddings. The function get_similarity_prosocial() returns a single floating point value between -1 and +1, with values closer to -1 meaning a text is less similar to prosocial language whereas values closer to +1 are more similar to prosocial language.
+    '''
+
     def __init__(self, model_id = 'joaopn/glove-model-reduced-stopwords', label_filter = 'issue'):
         # Initialize the model
         self.model = SentenceTransformer(model_id, device="cuda")
