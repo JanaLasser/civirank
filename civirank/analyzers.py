@@ -197,21 +197,19 @@ class PolarizationAnalyzer():
         cos_sim = self.compute_similarity(text_embeddings)
         return cos_sim.cpu().numpy()
 
-class ProsocialityAnalyzer():
-    def __init__(self, model = 'joaopn/glove-model-reduced-stopwords', local_model = False):
+class ProsocialityPolarizationAnalyzer():
+    def __init__(self, model_id = 'joaopn/glove-model-reduced-stopwords', label_filter = 'issue'):
         # Initialize the model
-        if local_model:
-            current_dir = os.path.dirname(__file__)
-            model_path = os.path.join(current_dir, 'data', model)
-        else:
-            model_path = model
-        self.model = SentenceTransformer(model_path, device="cuda")
+        self.model = SentenceTransformer(model_id, device="cuda")
         self.batch_size = 1024
-        # Load the polarization terms and compute their embeddings
-        self.load_and_embed_terms()
+        self.label_filter = label_filter
+        # Load terms and compute their embeddings
+        self.load_prosocial()
+        self.load_polarization()
 
 
-    def load_and_embed_terms(self):
+
+    def load_prosocial(self):
         # Load terms from CSV
         current_dir = os.path.dirname(__file__)
         fname = "prosocial_dictionary.csv"
@@ -230,7 +228,28 @@ class ProsocialityAnalyzer():
         )
         
         # Average the embeddings to create a single dictionary embedding
-        self.dict_embeddings = torch.mean(self.dict_embeddings, dim=0)
+        self.dict_embeddings_prosocial = torch.mean(self.dict_embeddings, dim=0)
+
+    def load_polarization(self):
+        # Load terms from CSV
+        current_dir = os.path.dirname(__file__)
+        fname = "polarization_dictionary.csv"
+        filepath = os.path.join(current_dir, 'data', fname)
+        df = pd.read_csv(filepath, header=0)
+        if self.label_filter is not None:
+            df = df[df['label'] == self.label_filter]
+        unique_words = df['word'].unique()
+        
+        # Compute embeddings for the unique words
+        self.dict_embeddings = self.model.encode(
+            list(unique_words),
+            batch_size=self.batch_size,
+            show_progress_bar=False,
+            convert_to_tensor=True
+        )
+        
+        # Average the embeddings to create a single dictionary embedding
+        self.dict_embeddings_polarization = torch.mean(self.dict_embeddings, dim=0)
 
     def preprocess(self, df):
         # Regular expressions to clean up the text data
@@ -256,16 +275,18 @@ class ProsocialityAnalyzer():
         assert len(corpus_embeddings) == len(df)
         return corpus_embeddings
     
-    def compute_similarity(self, text_embeddings):
-        # Calculate cosine similarity between text embeddings and dictionary embeddings
-        cos_sim = util.cos_sim(text_embeddings, self.dict_embeddings)
-        return cos_sim
-    
-    def get_similarity(self, texts):
+    def get_similarity_prosocial(self, texts):
         df = texts.copy()
         self.preprocess(df)
         text_embeddings = self.get_embeddings(df)
-        cos_sim = self.compute_similarity(text_embeddings)
+        cos_sim = util.cos_sim(text_embeddings, self.dict_embeddings_prosocial)
+        return cos_sim.cpu().numpy()
+
+    def get_similarity_polarization(self, texts):
+        df = texts.copy()
+        self.preprocess(df)
+        text_embeddings = self.get_embeddings(df)
+        cos_sim = util.cos_sim(text_embeddings, self.dict_embeddings_polarization)
         return cos_sim.cpu().numpy()
 
 class LanguageAnalyzer():

@@ -31,8 +31,7 @@ class LocalRanker():
         # Initialize analyzers
         self.TrustworthinessAnalyzer = analyzers.TrustworthinessAnalyzer()
         self.ToxicityAnalyzer = analyzers.ToxicityAnalyzer()
-        self.PolarizationAnalyzer = analyzers.PolarizationAnalyzer()
-        self.ProsocialityAnalyzer = analyzers.ProsocialityAnalyzer()
+        self.ProsocialityPolarizationAnalyzer = analyzers.ProsocialityPolarizationAnalyzer()
         self.LexicalDensityAnalyzer = analyzers.LexicalDensityAnalyzer()
         self.LanguageAnalyzer = analyzers.LanguageAnalyzer()
 
@@ -85,8 +84,8 @@ class LocalRanker():
         # Process posts
         parse_posts.loc[:, "trustworthiness"] = self.TrustworthinessAnalyzer.get_trustworthiness_scores(parse_posts)
         parse_posts.loc[:, "toxicity"] = self.ToxicityAnalyzer.get_toxicity_scores(parse_posts, batch_size=batch_size)
-        parse_posts.loc[:, "polarization"] = self.PolarizationAnalyzer.get_similarity(parse_posts)
-        parse_posts.loc[:, "prosociality"] = self.ProsocialityAnalyzer.get_similarity(parse_posts)
+        parse_posts.loc[:, "polarization"] = self.ProsocialityPolarizationAnalyzer.get_similarity_polarization(parse_posts)
+        parse_posts.loc[:, "prosociality"] = self.ProsocialityPolarizationAnalyzer.get_similarity_prosocial(parse_posts)
         parse_posts.loc[:, "mtld"] = self.LexicalDensityAnalyzer.get_mtld(parse_posts)
 
         parse_posts = analyzers.normalize(parse_posts)
