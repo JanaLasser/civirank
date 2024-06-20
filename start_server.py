@@ -25,7 +25,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Ranking Challenge')
     parser.add_argument('--port', type=int, default=8000, help='Port number')
     parser.add_argument('--scroll_warning_limit', type=float, default=-0.1, help='Scroll warning limit')
-    parser.add_argument('--batch_size', type=int, default=16, help='Batch size')
+    parser.add_argument('--batch_size', type=int, default=8, help='Batch size')
     args = parser.parse_args()
 
     uvicorn.run(app, host='0.0.0.0', port=args.port)
