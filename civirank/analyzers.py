@@ -84,47 +84,42 @@ class ToxicityAnalyzer():
     '''
         Class that loads a model to compute the toxicity of a text. It uses the unbiased toxic-roberta ONNX model from https://huggingface.co/protectai/unbiased-toxic-roberta-onnx. 
     '''
-    def __init__(self, model_name="protectai/unbiased-toxic-roberta-onnx", file_name='model.onnx', gpu_id=0):
+    def __init__(self, model_name="joaopn/unbiased-toxic-roberta-onnx-fp16", file_name='model.onnx', gpu_id=0):
         # Initialize the ONNX model and tokenizer with the specified model name
         self.model = ORTModelForSequenceClassification.from_pretrained(model_name, file_name=file_name, provider="CUDAExecutionProvider", provider_options={'device_id': gpu_id})
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.device = torch.device(f"cuda:{gpu_id}")
 
         # Find the index of the 'toxicity' label
-        self.toxicity_index = None
-        for idx, label in self.model.config.id2label.items():
-            if label.lower() == 'toxicity':
-                self.toxicity_index = idx
-                break
+        self.toxicity_index = next((idx for idx, label in self.model.config.id2label.items() if label.lower() == 'toxicity'), None)
         if self.toxicity_index is None:
             raise ValueError("Toxicity label not found in model's id2label mapping.")
-
-    def classify_texts(self, texts):
-        """ Tokenize and classify a batch of texts """
-        inputs = self.tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=512)
-        outputs = self.model(**inputs)
-
-        probabilities = torch.sigmoid(outputs.logits)
-
-        batch_results = []
-        for prob in probabilities:
-            result = prob[self.toxicity_index].item()  # Get the probability for the 'toxicity' label
-            batch_results.append(result)
-
-        return batch_results
 
     def get_toxicity_scores(self, text, batch_size=8):
         """ Analyze the given text or DataFrame and return toxicity scores """
         assert isinstance(text, (str, pd.DataFrame)), "Input should be either a string or a DataFrame"
 
         if isinstance(text, str):
-            results = self.classify_texts([text])
-            return results[0]  # Return the score for the single input string
+            inputs = self.tokenizer([text], return_tensors="pt", padding=True, truncation=True, max_length=512)
+            input_ids = inputs['input_ids'].to(self.device)
+            attention_mask = inputs['attention_mask'].to(self.device)
+            with torch.no_grad():
+                outputs = self.model(input_ids, attention_mask=attention_mask)
+            probabilities = torch.sigmoid(outputs.logits)
+            return probabilities[0, self.toxicity_index].item()
         else:
             results = []
-            for start in range(0, len(text), batch_size):
-                end = start + batch_size
-                batch_texts = text["text"].iloc[start:end].tolist()
-                batch_results = self.classify_texts(batch_texts)
+            total_samples = len(text)
+            for start_idx in range(0, total_samples, batch_size):
+                end_idx = start_idx + batch_size
+                batch_texts = text["text"].iloc[start_idx:end_idx].tolist()
+                inputs = self.tokenizer(batch_texts, return_tensors="pt", padding=True, truncation=True, max_length=512)
+                input_ids = inputs['input_ids'].to(self.device)
+                attention_mask = inputs['attention_mask'].to(self.device)
+                with torch.no_grad():
+                    outputs = self.model(input_ids, attention_mask=attention_mask)
+                probabilities = torch.sigmoid(outputs.logits)
+                batch_results = probabilities[:, self.toxicity_index].cpu().numpy().tolist()
                 results.extend(batch_results)
 
             return results
