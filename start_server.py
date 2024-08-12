@@ -21,6 +21,10 @@ def rank(ranking_request: RankingRequest) -> RankingResponse:
     ranked_results, new_items = ranker.rank(ranking_request, batch_size=args.batch_size, scroll_warning_limit=args.scroll_warning_limit)
     return {"ranked_ids": ranked_results, "new_items": new_items}
 
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Ranking Challenge')
     parser.add_argument('--port', type=int, default=8000, help='Port number')
