@@ -18,15 +18,25 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -
     ./miniconda.sh -b -p /miniconda && \
     rm miniconda.sh
 
+# Install Miniconda for aarch64 (for container debugging on M1 Mac)
+# RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh -O miniconda.sh && \
+#     chmod +x miniconda.sh && \
+#     ./miniconda.sh -b -p /miniconda && \
+#     rm miniconda.sh
+
+
 # Add Miniconda to PATH
 ENV PATH="/miniconda/bin:${PATH}"
+
+# install mamba since conda has trouble properly resolving dependencies
+RUN conda install -c conda-forge -y mamba
 
 # Copy the environment.yml file
 COPY environment.yml /app/environment.yml
 
 # Create the Conda environment
-RUN conda env create -f environment.yml && \
-    conda clean -afy
+RUN mamba env create --debug -f environment.yml
+RUN mamba clean -afy
 
 # Activate the conda environment
 SHELL ["conda", "run", "-n", "ranker", "/bin/bash", "-c"]
@@ -59,4 +69,5 @@ COPY . /app
 EXPOSE 8000
 
 # Set the default command to run your FastAPI application
-CMD ["conda", "run", "--no-capture-output", "-n", "ranker", "python", "main.py", "--port", "8000", "--scroll_warning_limit", "-0.1", "--batch_size", "8"]
+# CMD ["conda", "run", "--no-capture-output", "-n", "ranker", "python", "main.py", "--port", "8000", "--scroll_warning_limit", "-0.1", "--batch_size", "8"]
+CMD ["python", "start_server.py", "--port", "8000", "--batch_size", "8", "--scroll_warning_limit", "-0.1"]
