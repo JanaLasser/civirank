@@ -70,4 +70,4 @@ EXPOSE 8000
 
 # Set the default command to run your FastAPI application
 # CMD ["conda", "run", "--no-capture-output", "-n", "ranker", "python", "main.py", "--port", "8000", "--scroll_warning_limit", "-0.1", "--batch_size", "8"]
-CMD ["python", "start_server.py", "--port", "8000", "--batch_size", "8", "--scroll_warning_limit", "-0.1"]
+CMD ["conda", "run", "--no-capture-output", "-n", "ranker", "python", "start_server.py", "--port", "8000", "--batch_size", "8", "--scroll_warning_limit", "-0.1"]

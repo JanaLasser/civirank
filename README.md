@@ -1,6 +1,12 @@
 # Civirank
 Repo for the Civirank ranker.
 
+## Building with docker
+
+1. Download model.onnx from https://huggingface.co/joaopn/unbiased-toxic-roberta-onnx-fp16/tree/main
+2. Put it in the project root
+3. Build docker container
+
 # Submission form
 
 * **Describe your algorithm. How will you reorder, add, and/or remove content?**  (Up to 250 words.)
@@ -73,12 +79,12 @@ I would like to add back two items from the addiction scale, replacing "phone" w
 3. *A few posts ago we showed you a warning, encouraging you to stop scrolling in your feed. Why did you keep scrolling?* [I didn't notice the warning, I didn't want to stop, I was curious about the posts after the warning, None of the above, I don't know]
 
 * **What is new about your approach? Why do you believe that it will work, and what evidence do you have? Please discuss your theory of change and include citations to previous work.** (Up to 250 words.)
-I believe my ranker has two new components: 
+I believe my ranker has two new components:
 (1) A balanced ranking that considers various quality dimensions with the overall aim of improving civic discourse.
-(2) "Scroll warnings" reducing the social media usage if it would mainly cause users to see low-quality content. 
+(2) "Scroll warnings" reducing the social media usage if it would mainly cause users to see low-quality content.
 
 Below I discuss why I believe it will work:
- 
+
 - Reducing toxic content might prevent members of minority groups from leaving or self-censoring (hateful content directed at minorities has these effects https://doi.org/10.1177/1043986213507403).
 - Reducing content high in affective polarization might directly reduce affective polarization. Facebook & Instagram election study (https://doi.org/10.1126/science.abp9364) didn't find a change in affective polarizatio, but they only tested curated vs. chronological feed, not re-ranking based on affective polarization. I am interested to see if this makes a difference.
 - Prosocial features in language predict a prosocial trajectory of conversations (see https://doi.org/10.1145/3442381.3450122). I expect people to have an overall better time using the platform if they see more prosocial content, keeping up retention. I also expect them to see less content "bad for the world" that is not caught by the toxicity ranking.
@@ -92,7 +98,7 @@ Below I discuss why I believe it will work:
 The prototype was build using Python. Dependencies are the libraries numpy, pandas, sentence_transformers, PyTorch, googleapiclient, lexicalrichness and langdetect (I can provide a requirements.txt file). In addition, the prototype depends on pre-calculated embeddings of the polarization and prosociality dictionaries, and the NewsGuard trustworthiness scores, provided in the form of a .csv file. In addition, the prototype currently uses the Google Perspective API to calculate toxicity scores.
 
 * **Where can we find your submission? This needs to be a URL to a live HTTP endpoint implementing our first-round specifications.**
-Ranker can be found at http://5.75.245.130:5001/rank. Note that this is currently really slow (takes about 1 min to rank ~600 posts). The main bottleneck is the current sequential toxicitiy inference with the perspective API, which will be switched to a locally hosted alternative. 
+Ranker can be found at http://5.75.245.130:5001/rank. Note that this is currently really slow (takes about 1 min to rank ~600 posts). The main bottleneck is the current sequential toxicitiy inference with the perspective API, which will be switched to a locally hosted alternative.
 
 * **Have any members of your team previously published related work? Please provide up to five links to previous projects, code, papers, etc.**
 - Social media sharing of low quality news sources by political elites https://doi.org/10.1093/pnasnexus/pgac186. In this paper we use the same approach of assessing trustworthiness of news pieces on the domain level with NewsGuard scores.

@@ -9,7 +9,7 @@ services:
     environment:
       BATCH_SIZE: "${BATCH_SIZE}"
       SCROLL_WARNING_LIMIT: "${SCROLL_WARNING_LIMIT}"
-    command: ["python", "start_server.py", "--port", "${PORT}", "--batch_size", "${BATCH_SIZE}", "--scroll_warning_limit", "${SCROLL_WARNING_LIMIT}"]
+    command: ["conda", "run", "--no-capture-output", "-n", "ranker", "python", "start_server.py", "--port", "${PORT}", "--batch_size", "${BATCH_SIZE}", "--scroll_warning_limit", "${SCROLL_WARNING_LIMIT}"]
     volumes:
       - .:/app
     deploy:
