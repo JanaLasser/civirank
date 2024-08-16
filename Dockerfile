@@ -41,26 +41,34 @@ RUN mamba clean -afy
 # Activate the conda environment
 SHELL ["conda", "run", "-n", "ranker", "/bin/bash", "-c"]
 
-# Install PyTorch for CPU (since we're not using CUDA in this setup)
-RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
+COPY model_download.py /app/model_download.py
 
-# Install additional packages
-RUN pip install --no-cache-dir \
-    optimum[onnxruntime] \
-    fastapi==0.111.0 \
-    fasttext_wheel==0.9.2 \
-    huggingface_hub==0.23.3 \
-    lexicalrichness==0.5.1 \
-    numpy==1.26.4 \
-    pandas==2.2.2 \
-    pydantic==2.7.4 \
-    ranking_challenge==2.0.0 \
-    sentence_transformers==3.0.1 \
-    transformers==4.41.2 \
-    uvicorn==0.30.1 \
-    simplejson \
-    numexpr \
-    bottleneck
+RUN conda run -n ranker python model_download.py
+
+# Anaconda should install of these packages for us.
+#
+# # Install PyTorch for CPU (since we're not using CUDA in this setup)
+# RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
+
+# # Install additional packages
+# RUN pip install --no-cache-dir \
+#     --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/ \
+#     optimum[onnxruntime-gpu] \
+#     # optimum[onnxruntime] \
+#     fastapi==0.111.0 \
+#     fasttext_wheel==0.9.2 \
+#     huggingface_hub==0.23.3 \
+#     lexicalrichness==0.5.1 \
+#     numpy==1.26.4 \
+#     pandas==2.2.2 \
+#     pydantic==2.7.4 \
+#     ranking_challenge==2.0.0 \
+#     sentence_transformers==3.0.1 \
+#     transformers==4.41.2 \
+#     uvicorn==0.30.1 \
+#     simplejson \
+#     numexpr \
+#     bottleneck
 
 # Copy the rest of your application's code
 COPY . /app
