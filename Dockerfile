@@ -32,3 +32,6 @@ COPY . /app
 
 # Expose the port the app runs on
 EXPOSE 8000
+
+# Download the models
+RUN conda run -n ranker python model_download.py
