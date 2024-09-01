@@ -1,5 +1,6 @@
 services:
   civirank:
+    image: civirank-civirank
     build:
       context: .
       dockerfile: Dockerfile

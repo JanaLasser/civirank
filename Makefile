@@ -17,3 +17,5 @@ build:
 				$(DOCKER_COMPOSE) build
 run:
 				$(DOCKER_COMPOSE) up
+clean:
+				$(DOCKER_COMPOSE) down --volumes --remove-orphans
