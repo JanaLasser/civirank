@@ -13,23 +13,26 @@ app = FastAPI(
     version="0.1",
 )
 
-# Initialize the ranker instance
-ranker = rankers.LocalRanker()
-
-@app.post('/rank')
-def rank(ranking_request: RankingRequest) -> RankingResponse:
-    ranked_results, new_items = ranker.rank(ranking_request, batch_size=args.batch_size, scroll_warning_limit=args.scroll_warning_limit)
-    return {"ranked_ids": ranked_results, "new_items": new_items}
-
-@app.get("/health")
-def health_check():
-    return {"status": "healthy"}
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Ranking Challenge')
     parser.add_argument('--port', type=int, default=8000, help='Port number')
     parser.add_argument('--scroll_warning_limit', type=float, default=-0.1, help='Scroll warning limit')
     parser.add_argument('--batch_size', type=int, default=8, help='Batch size')
+    parser.add_argument('--no-download-models', action='store_false', dest='download_models', help='Skip downloading models, use models from disk instead')
+
     args = parser.parse_args()
+
+    # Initialize the ranker instance with the download_models argument
+    ranker = rankers.LocalRanker(download_models=args.download_models)
+
+    # Define routes after initializing the ranker
+    @app.post('/rank')
+    def rank(ranking_request: RankingRequest) -> RankingResponse:
+        ranked_results, new_items = ranker.rank(ranking_request, batch_size=args.batch_size, scroll_warning_limit=args.scroll_warning_limit)
+        return {"ranked_ids": ranked_results, "new_items": new_items}
+
+    @app.get("/health")
+    def health_check():
+        return {"status": "healthy"}
 
     uvicorn.run(app, host='0.0.0.0', port=args.port, log_level='warning')

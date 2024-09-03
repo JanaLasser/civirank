@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 class LocalRanker():
-    def __init__(self, weights=None, lim=False, min_scores=0, debug=False, warning_urls=None):
+    def __init__(self, weights=None, lim=False, min_scores=0, debug=False, warning_urls=None, download_models=True):
 
         # Set the weights for the different scores
         if weights is None:
@@ -28,12 +28,14 @@ class LocalRanker():
         else:
             self.warning_urls = warning_urls
 
+        self.download_models = download_models
+
         # Initialize analyzers
         self.TrustworthinessAnalyzer = analyzers.TrustworthinessAnalyzer()
-        self.ToxicityAnalyzer = analyzers.ToxicityAnalyzer()
-        self.ProsocialityPolarizationAnalyzer = analyzers.ProsocialityPolarizationAnalyzer()
+        self.ToxicityAnalyzer = analyzers.ToxicityAnalyzer(download_models=self.download_models)
+        self.ProsocialityPolarizationAnalyzer = analyzers.ProsocialityPolarizationAnalyzer(download_models=self.download_models)
         self.LexicalDensityAnalyzer = analyzers.LexicalDensityAnalyzer()
-        self.LanguageAnalyzer = analyzers.LanguageAnalyzer()
+        self.LanguageAnalyzer = analyzers.LanguageAnalyzer(download_models=self.download_models)
 
         # Scores that are considered in the compound score
         self.scores = ['no_toxicity', 'no_polarization', 'mtld', 'trustworthiness', 'prosociality']

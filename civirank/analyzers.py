@@ -84,10 +84,12 @@ class ToxicityAnalyzer():
     '''
         Class that loads a model to compute the toxicity of a text. It uses the unbiased toxic-roberta ONNX model from https://huggingface.co/protectai/unbiased-toxic-roberta-onnx. 
     '''
-    def __init__(self, model_name="joaopn/unbiased-toxic-roberta-onnx-fp16", file_name='model.onnx', gpu_id=0):
+    def __init__(self, model_id="joaopn/unbiased-toxic-roberta-onnx-fp16", file_name='model.onnx', gpu_id=0, download_models=True):
         # Initialize the ONNX model and tokenizer with the specified model name
-        self.model = ORTModelForSequenceClassification.from_pretrained(model_name, file_name=file_name, provider="CUDAExecutionProvider", provider_options={'device_id': gpu_id})
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        if download_models == False:
+            model_id = os.path.join('civirank', 'models', model_id.replace("/","_"))
+        self.model = ORTModelForSequenceClassification.from_pretrained(model_id, file_name=file_name, provider="CUDAExecutionProvider", provider_options={'device_id': gpu_id})
+        self.tokenizer = AutoTokenizer.from_pretrained(model_id)
         self.device = torch.device(f"cuda:{gpu_id}")
 
         # Find the index of the 'toxicity' label
@@ -135,8 +137,10 @@ class ProsocialityPolarizationAnalyzer():
         Similar to the polarization class, it loads a dictionary of prosocial terms and calculates the cosine similarity between the averaged dictionary embeddings and the text embeddings. The function get_similarity_prosocial() returns a single floating point value between -1 and +1, with values closer to -1 meaning a text is less similar to prosocial language whereas values closer to +1 are more similar to prosocial language.
     '''
 
-    def __init__(self, model_id = 'joaopn/glove-model-reduced-stopwords', label_filter = 'issue'):
+    def __init__(self, model_id = 'joaopn/glove-model-reduced-stopwords', label_filter = 'issue', download_models=True):
         # Initialize the model
+        if download_models == False:
+            model_id = os.path.join('civirank', 'models', model_id.replace("/","_"))
         self.model = SentenceTransformer(model_id, device="cuda")
         self.batch_size = 1024
         self.label_filter = label_filter
@@ -227,8 +231,11 @@ class ProsocialityPolarizationAnalyzer():
         return cos_sim.cpu().numpy()
 
 class LanguageAnalyzer():
-    def __init__(self):
-        model_path = hf_hub_download(repo_id="facebook/fasttext-language-identification", filename="model.bin")
+    def __init__(self, model_id = "facebook/fasttext-language-identification", filename="model.bin", download_models=True):
+        if download_models == False:
+            model_path = os.path.join('civirank', 'models', model_id.replace("/","_"), filename)
+        else:
+            model_path = hf_hub_download(repo_id=model_id, filename=filename)
         self.model = fasttext.load_model(model_path)
 
     def detect_language(self, text):
