@@ -61,7 +61,11 @@ class LocalRanker():
         
         # Detect language of each post
         for i in range(len(dataset["items"])):
-            dataset['items'][i]['lang'] = self.LanguageAnalyzer.detect_language(dataset['items'][i]['text'].replace('\n', ' '))
+            if platform == "twitter" and "lang" in dataset['items'][i]:
+                pass
+            else:
+                dataset['items'][i]['lang'] = self.LanguageAnalyzer.detect_language(dataset['items'][i]['text'].replace('\n', ' '))
+
             if self.debug:
                 dataset['items'][i]['original_rank'] = i
         
